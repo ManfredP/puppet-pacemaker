@@ -17,8 +17,6 @@ Output forms:
           cluster is not set up or if crm_node return an error
       eof
   ) do |args|
-    # no point in doing this if the crm_node executable does not exist
-    return [] if Facter::Util::Resolution.which('crm_node') == nil
     nodes = args[0]
     addr_list = args[1]
     pcs_version = args[2]
@@ -39,14 +37,12 @@ Output forms:
       return [] if crm_node_list.empty?
       crm_nodes_output = crm_node_list
     else
-      # A typical crm_node -l output is like the following:
-      # [root@foobar-0 ~]# crm_node -l
-      # 3 foobar-2 member
-      # 1 foobar-0 member
-      # 2 foobar-1 lost
-      crm_nodes_output = `crm_node -l`
-      # if the command fails we certainly did not add any nodes
-      return [] if $?.exitstatus != 0
+      crm_nodes_fact = Facter.value(:pacemaker_node_list)
+      if crm_nodes_fact.nil? or !crm_nodes_fact.kind_of?(Array)
+        return []
+      else
+        crm_nodes_output = crm_nodes_fact.join("\n")
+      end
     end
     Puppet.debug("pcmk_nodes_added: crm_nodes_output #{crm_nodes_output}")
 
